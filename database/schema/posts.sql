@@ -1,0 +1,10 @@
+CREATE TABLE posts(
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT REFERENCES users(id) ON DELETE CASCADE,
+    title VARCHAR(100) NOT NULL,
+    content TEXT NOT NULL,
+    url VARCHAR(255),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    vote_score INTEGER DEFAULT 0,
+    comment_count INTEGER DEFAULT 0
+);
