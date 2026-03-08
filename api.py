@@ -214,3 +214,59 @@ def delete_post(post_id: int, user_id: int = Depends(get_current_user)):
     finally:
         cursor.close()
         conn.close()
+
+@app.get("/posts/{post_id}/comments")
+def get_comments(post_id: int):
+    conn = get_conn()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute("""
+        SELECT c.id, c.comment, c.created_at, u.username
+        FROM comments c
+        JOIN users u ON c.user_id = u.id
+        WHERE c.post_id = %s
+        ORDER BY c.created_at DESC
+        """, (post_id,))
+
+        comments = cursor.fetchall()
+
+        return [
+            {
+                "id": comment[0],
+                "comment": comment[1],
+                "created_at": comment[2],
+                "username": comment[3]
+            }
+            for comment in comments
+        ]
+    finally:
+        cursor.close()
+        conn.close()
+
+@app.post("/posts/{post_id}/comments")
+def add_comment(post_id: int, comment: str, user_id: int = Depends(get_current_user)):
+    conn = get_conn()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute("""
+        INSERT INTO comments (user_id, post_id, comment)
+        VALUES (%s, %s, %s)
+        RETURNING id
+        """, (user_id, post_id, comment))
+
+        comment_id = cursor.fetchone()[0]
+
+        conn.commit()
+
+        return {
+            "message": "Comment added successfully",
+            "comment_id": comment_id
+        }
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        cursor.close()
+        conn.close()
