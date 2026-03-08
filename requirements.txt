@@ -4,3 +4,5 @@ uvicorn
 pydantic
 starlette
 pydantic[email]
+python-multipart
+passlib[bcrypt]
