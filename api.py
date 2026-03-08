@@ -133,3 +133,84 @@ def login_user(form_data: OAuth2PasswordRequestForm = Depends()):
     finally:
         cursor.close()
         conn.close()
+
+@app.get("/posts")
+def get_posts():
+    conn = get_conn()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+        SELECT p.id, p.title, p.content, p.url, u.username
+        FROM posts p
+        JOIN users u ON p.user_id = u.id
+        ORDER BY p.created_at DESC
+        """)
+        posts = cursor.fetchall()
+
+        return [
+            {
+                "id": post[0],
+                "title": post[1],
+                "content": post[2],
+                "url": post[3],
+                "username": post[4]
+            }
+            for post in posts
+        ]
+    finally:
+        cursor.close()
+        conn.close()
+
+class PostCreate(BaseModel):
+    title: str
+    content: str
+    url: str
+
+@app.post("/posts")
+def create_post(post: PostCreate, user_id: int = Depends(get_current_user) ):
+    conn = get_conn()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+        INSERT INTO posts (title, content, url, user_id)
+        VALUES (%s, %s, %s, %s)
+        RETURNING id
+        """, (post.title, post.content, post.url, user_id))  # Assuming user_id is 1 for now
+
+        post_id = cursor.fetchone()[0]
+
+        conn.commit()
+
+        return {
+            "message": "Post created successfully",
+            "post_id": post_id
+        }
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        cursor.close()
+        conn.close()
+
+@app.delete("/posts/{post_id}")
+def delete_post(post_id: int, user_id: int = Depends(get_current_user)):
+    conn = get_conn()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute(
+            "DELETE FROM posts WHERE id=%s AND user_id=%s RETURNING id",
+            (post_id, user_id)
+        )
+
+        deleted = cursor.fetchone()
+
+        if not deleted:
+            raise HTTPException(403, "Not authorized")
+
+        conn.commit()
+
+        return {"message": "Post deleted"}
+    finally:
+        cursor.close()
+        conn.close()
