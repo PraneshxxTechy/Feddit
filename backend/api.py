@@ -42,7 +42,17 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
     except JWTError:
         raise HTTPException(status_code=401, detail="Invalid token")
 
+from fastapi.middleware.cors import CORSMiddleware
+
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 def get_conn():
     conn = psycopg2.connect(
@@ -109,8 +119,8 @@ def login_user(form_data: OAuth2PasswordRequestForm = Depends()):
         cursor.execute("""
         SELECT id, username, password
         FROM users
-        WHERE username = %s
-        """, (form_data.username,))  
+        WHERE username = %s OR email = %s
+        """, (form_data.username, form_data.username))  
 
         db_user = cursor.fetchone()
 
