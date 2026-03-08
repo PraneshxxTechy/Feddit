@@ -68,7 +68,7 @@ input:focus {
   width: 100%;
   max-width: 400px;
   border: 1px solid var(--border);
-  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
 }
 
 .auth-card h2 {
@@ -188,7 +188,7 @@ input:focus {
 
 .vote-sidebar {
   width: 40px;
-  background-color: rgba(255,255,255,0.02);
+  background-color: rgba(255, 255, 255, 0.02);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -238,4 +238,53 @@ input:focus {
 
 .action-item:hover {
   background-color: var(--bg-input);
+}
+
+.vote-icon {
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.vote-icon:hover {
+  background-color: var(--bg-input);
+  color: var(--primary);
+}
+
+.vote-count {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--text-main);
+}
+
+.post-actions .count-text {
+  color: var(--text-main);
+  margin-left: 4px;
+}
+
+.expanded-comments {
+  background-color: #121213;
+  border: 1px solid var(--border);
+  border-top: none;
+  border-radius: 0 0 4px 4px;
+  padding: 16px;
+}
+
+.comments-list {
+  margin-bottom: 20px;
+}
+
+.comment-item {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.comment-item:last-child {
+  border-bottom: none;
+}
+
+.comment-input {
+  width: 100%;
+  margin-bottom: 12px;
 }

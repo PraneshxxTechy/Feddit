@@ -4,7 +4,7 @@ import api from "../api/api";
 export default function Comments({ postId }) {
 
   const [comments, setComments] = useState([]);
-  const [content, setContent] = useState("");
+  const [comment, setComment] = useState("");
 
   const fetchComments = async () => {
     const res = await api.get(`/posts/${postId}/comments`);
@@ -12,30 +12,39 @@ export default function Comments({ postId }) {
   };
 
   const addComment = async () => {
-    await api.post(`/posts/${postId}/comments`, { content });
-    setContent("");
-    fetchComments();
+    try {
+      await api.post(`/posts/${postId}/comments`, { comment });
+      setComment("");
+      fetchComments();
+    } catch (err) {
+      console.error("Comment error:", err);
+      alert(err.response?.data?.detail || "Failed to add comment. Are you logged in?");
+    }
   };
 
-  useEffect(()=>{
+  useEffect(() => {
     fetchComments();
   }, []);
 
   return (
-    <div>
-
+    <div className="comments-section">
       <h4>Comments</h4>
-
-      {comments.map(c => (
-        <p key={c.id}>{c.content} - {c.username}</p>
-      ))}
+      <div className="comments-list">
+        {comments.map(c => (
+          <div key={c.id} className="comment-item">
+            <p><strong>u/{c.username}</strong>: {c.comment}</p>
+          </div>
+        ))}
+      </div>
 
       <input
-        value={content}
-        onChange={(e)=>setContent(e.target.value)}
+        className="comment-input"
+        placeholder="Add a comment..."
+        value={comment}
+        onChange={(e) => setComment(e.target.value)}
       />
 
-      <button onClick={addComment}>Add Comment</button>
+      <button className="primary-btn" onClick={addComment}>Add Comment</button>
 
     </div>
   );

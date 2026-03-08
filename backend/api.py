@@ -162,8 +162,8 @@ def get_posts(
             p.title,
             p.content,
             p.url,
-            p.vote_score,
-            p.comment_count,
+            COALESCE((SELECT SUM(vote_type) FROM votes WHERE post_id = p.id), 0) as vote_score,
+            COALESCE((SELECT COUNT(*) FROM comments WHERE post_id = p.id), 0) as comment_count,
             u.username
         FROM posts p
         JOIN users u ON p.user_id = u.id
@@ -194,6 +194,12 @@ class PostCreate(BaseModel):
     title: str
     content: str
     url: str
+
+class VoteRequest(BaseModel):
+    vote_type: int
+
+class CommentCreate(BaseModel):
+    comment: str
 
 @app.post("/posts")
 def create_post(post: PostCreate, user_id: int = Depends(get_current_user) ):
@@ -274,7 +280,7 @@ def get_comments(post_id: int):
         conn.close()
 
 @app.post("/posts/{post_id}/comments")
-def add_comment(post_id: int, comment: str, user_id: int = Depends(get_current_user)):
+def add_comment(post_id: int, comment_data: CommentCreate, user_id: int = Depends(get_current_user)):
     conn = get_conn()
     cursor = conn.cursor()
 
@@ -283,7 +289,7 @@ def add_comment(post_id: int, comment: str, user_id: int = Depends(get_current_u
         INSERT INTO comments (user_id, post_id, comment)
         VALUES (%s, %s, %s)
         RETURNING id
-        """, (user_id, post_id, comment))
+        """, (user_id, post_id, comment_data.comment))
 
         comment_id = cursor.fetchone()[0]
 
@@ -301,8 +307,8 @@ def add_comment(post_id: int, comment: str, user_id: int = Depends(get_current_u
         conn.close()
 
 @app.post("/posts/{post_id}/vote")
-def vote_post(post_id: int, vote_type: int, user_id: int = Depends(get_current_user)):
-    if vote_type not in [1, -1]:
+def vote_post(post_id: int, vote_data: VoteRequest, user_id: int = Depends(get_current_user)):
+    if vote_data.vote_type not in [1, -1]:
         raise HTTPException(status_code=400, detail="Invalid vote type")
 
     conn = get_conn()
@@ -314,16 +320,12 @@ def vote_post(post_id: int, vote_type: int, user_id: int = Depends(get_current_u
         VALUES (%s, %s, %s)
         ON CONFLICT (user_id, post_id) DO UPDATE
         SET vote_type = EXCLUDED.vote_type
-        RETURNING id
-        """, (user_id, post_id, vote_type))
-
-        vote_id = cursor.fetchone()[0]
+        """, (user_id, post_id, vote_data.vote_type))
 
         conn.commit()
 
         return {
-            "message": "Vote recorded successfully",
-            "vote_id": vote_id
+            "message": "Vote recorded successfully"
         }
     except Exception as e:
         conn.rollback()
@@ -347,9 +349,13 @@ def get_votes(post_id: int):
 
         votes = cursor.fetchall()
 
+        upvotes = next((count for vt, count in votes if vt == 1), 0)
+        downvotes = next((count for vt, count in votes if vt == -1), 0)
+
         return {
-            "upvotes": next((count for vt, count in votes if vt == 1), 0),
-            "downvotes": next((count for vt, count in votes if vt == -1), 0)
+            "score": upvotes - downvotes,
+            "upvotes": upvotes,
+            "downvotes": downvotes
         }
     finally:
         cursor.close()
