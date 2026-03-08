@@ -1,13 +1,15 @@
 import psycopg2
 from datetime import datetime
 
+from enve import settings
+
 try:
     conn = psycopg2.connect(
-        host="localhost",
-        database="reddit",
-        user="postgres",
-        password="pranesh@8917",
-        port=5432
+        host=settings.database_host,
+        database=settings.database_name,
+        user=settings.database_user,
+        password=settings.database_password,
+        port=settings.database_port
     )
     cursor = conn.cursor()
     posts = [

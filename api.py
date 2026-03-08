@@ -8,12 +8,13 @@ from fastapi import HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi import Depends
 from fastapi.security import OAuth2PasswordBearer
+from enve import settings
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
-SECRET_KEY = "supersecretkey"
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60
+SECRET_KEY = settings.secret_key
+ALGORITHM = settings.algorithm
+ACCESS_TOKEN_EXPIRE_MINUTES = settings.access_token_expire_minutes
 
 
 def create_access_token(data: dict):
@@ -45,11 +46,11 @@ app = FastAPI()
 
 def get_conn():
     conn = psycopg2.connect(
-        host="localhost",
-        database="reddit",
-        user="postgres",
-        password="pranesh@8917",
-        port=5432
+        host=settings.database_host,
+        database=settings.database_name,
+        user=settings.database_user,
+        password=settings.database_password,
+        port=settings.database_port
     )
     return conn
 

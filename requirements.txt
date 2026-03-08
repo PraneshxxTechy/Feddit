@@ -6,3 +6,5 @@ starlette
 pydantic[email]
 python-multipart
 passlib[bcrypt]
+pydantic-settings
+python-dotenv
