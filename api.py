@@ -135,17 +135,32 @@ def login_user(form_data: OAuth2PasswordRequestForm = Depends()):
         cursor.close()
         conn.close()
 
+from fastapi import Query
+
 @app.get("/posts")
-def get_posts():
+def get_posts(
+    limit: int = Query(10, ge=1, le=100),
+    offset: int = Query(0, ge=0)
+):
     conn = get_conn()
     cursor = conn.cursor()
+
     try:
         cursor.execute("""
-        SELECT p.id, p.title, p.content, p.url, u.username
+        SELECT 
+            p.id,
+            p.title,
+            p.content,
+            p.url,
+            p.vote_score,
+            p.comment_count,
+            u.username
         FROM posts p
         JOIN users u ON p.user_id = u.id
         ORDER BY p.created_at DESC
-        """)
+        LIMIT %s OFFSET %s
+        """, (limit, offset))
+
         posts = cursor.fetchall()
 
         return [
@@ -154,10 +169,13 @@ def get_posts():
                 "title": post[1],
                 "content": post[2],
                 "url": post[3],
-                "username": post[4]
+                "votes": post[4],
+                "comments": post[5],
+                "username": post[6]
             }
             for post in posts
         ]
+
     finally:
         cursor.close()
         conn.close()
