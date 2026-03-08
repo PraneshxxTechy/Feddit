@@ -270,3 +270,58 @@ def add_comment(post_id: int, comment: str, user_id: int = Depends(get_current_u
     finally:
         cursor.close()
         conn.close()
+
+@app.post("/posts/{post_id}/vote")
+def vote_post(post_id: int, vote_type: int, user_id: int = Depends(get_current_user)):
+    if vote_type not in [1, -1]:
+        raise HTTPException(status_code=400, detail="Invalid vote type")
+
+    conn = get_conn()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute("""
+        INSERT INTO votes (user_id, post_id, vote_type)
+        VALUES (%s, %s, %s)
+        ON CONFLICT (user_id, post_id) DO UPDATE
+        SET vote_type = EXCLUDED.vote_type
+        RETURNING id
+        """, (user_id, post_id, vote_type))
+
+        vote_id = cursor.fetchone()[0]
+
+        conn.commit()
+
+        return {
+            "message": "Vote recorded successfully",
+            "vote_id": vote_id
+        }
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        cursor.close()
+        conn.close()
+
+@app.get("/posts/{post_id}/votes")
+def get_votes(post_id: int):
+    conn = get_conn()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute("""
+        SELECT vote_type, COUNT(*)
+        FROM votes
+        WHERE post_id = %s
+        GROUP BY vote_type
+        """, (post_id,))
+
+        votes = cursor.fetchall()
+
+        return {
+            "upvotes": next((count for vt, count in votes if vt == 1), 0),
+            "downvotes": next((count for vt, count in votes if vt == -1), 0)
+        }
+    finally:
+        cursor.close()
+        conn.close()
